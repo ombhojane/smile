@@ -1,39 +1,83 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-
-const filterOptions = {
-  ageGroup: ['18-25', '26-35', '36-45', '46-60', '60+'],
-  region: ['North', 'South', 'East', 'West'],
-  gender: ['Male', 'Female', 'Other'],
-  language: ['English', 'Hindi', 'Spanish', 'French'],
-  purchaseActivity: ['7days', '30days', '90days'],
-};
+import Papa from 'papaparse';
 
 export default function Dashboard() {
+  const [data, setData] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({});
   const [filters, setFilters] = useState({
-    ageGroup: '',
-    region: '',
-    gender: [],
-    language: '',
-    purchaseActivity: '',
+    AgeGroup: '',
+    Region: '',
+    Gender: [],
+    PreferredLanguage: '',
+    PurchaseCategory: '',
     minAmount: 0,
     maxAmount: 1000000
   });
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/csv-data')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch CSV data');
+        }
+        return response.text();
+      })
+      .then(csvString => {
+        Papa.parse(csvString, {
+          header: true,
+          complete: (results) => {
+            if (results.errors.length > 0) {
+              console.error('CSV parsing errors:', results.errors);
+            }
+            setData(results.data);
+            generateFilterOptions(results.data);
+          },
+          error: (error) => {
+            setError('Error parsing CSV: ' + error.message);
+          }
+        });
+      })
+      .catch(error => {
+        setError('Error fetching CSV: ' + error.message);
+      });
+  }, []);
+
+  const generateFilterOptions = (data) => {
+    const options = {
+      AgeGroup: [...new Set(data.map(item => item.AgeGroup).filter(Boolean))],
+      Region: [...new Set(data.map(item => item.Region).filter(Boolean))],
+      Gender: [...new Set(data.map(item => item.Gender).filter(Boolean))],
+      PreferredLanguage: [...new Set(data.map(item => item.PreferredLanguage).filter(Boolean))],
+      PurchaseCategory: [...new Set(data.map(item => item.PurchaseCategory).filter(Boolean))],
+    };
+    setFilterOptions(options);
+  };
 
   const updateVisualization = () => {
-    const visualizationText = `
-      Showing data for:
-      Age Group: ${filters.ageGroup || "All"},
-      Region: ${filters.region || "All"},
-      Gender: ${filters.gender.join(', ') || "All"},
-      Language: ${filters.language || "All"},
-      Purchase Activity: ${filters.purchaseActivity || "All"},
+    const filteredData = data.filter(item => {
+      return (
+        (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
+        (filters.Region === '' || item.Region === filters.Region) &&
+        (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
+        (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
+        (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+        (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
+      );
+    });
+
+    return `
+      Showing data for ${filteredData.length} contacts:
+      Age Group: ${filters.AgeGroup || "All"},
+      Region: ${filters.Region || "All"},
+      Gender: ${filters.Gender.join(', ') || "All"},
+      Preferred Language: ${filters.PreferredLanguage || "All"},
+      Purchase Category: ${filters.PurchaseCategory || "All"},
       Purchase Amount: Min: ${filters.minAmount / 100000} Lakh / Max: ${filters.maxAmount / 100000} Lakh
     `;
-    return visualizationText;
   };
 
   const handleFilterChange = (e) => {
@@ -41,18 +85,18 @@ export default function Dashboard() {
     if (type === 'checkbox') {
       setFilters(prev => ({
         ...prev,
-        gender: checked
-          ? [...prev.gender, value]
-          : prev.gender.filter(g => g !== value)
+        Gender: checked
+          ? [...prev.Gender, value]
+          : prev.Gender.filter(g => g !== value)
       }));
     } else {
       setFilters(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  useEffect(() => {
-    // This effect can be used to trigger API calls or other side effects when filters change
-  }, [filters]);
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-lavender-50">
@@ -61,7 +105,8 @@ export default function Dashboard() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Image src="/smile.png" alt="Smile Logo" width={40} height={40} />
+                {/* Remove or replace this Image component if you don't have the smile.png file */}
+                {/* <Image src="/smile.png" alt="Smile Logo" width={40} height={40} /> */}
                 <span className="ml-2 text-xl font-bold text-gray-800">SMILE CRM</span>
               </div>
             </div>
@@ -88,7 +133,7 @@ export default function Dashboard() {
                   <label htmlFor={key} className="block text-sm font-medium text-gray-700 capitalize">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </label>
-                  {key === 'gender' ? (
+                  {key === 'Gender' ? (
                     <div className="mt-2 space-y-2">
                       {options.map((option) => (
                         <div key={option} className="flex items-center">
@@ -118,9 +163,7 @@ export default function Dashboard() {
                       <option value="">Select {key.replace(/([A-Z])/g, ' $1').trim()}</option>
                       {options.map((option) => (
                         <option key={option} value={option}>
-                          {key === 'purchaseActivity' 
-                            ? option === '7days' ? 'Last Week' : option === '30days' ? 'Last Month' : 'Last 90 Days'
-                            : option}
+                          {option}
                         </option>
                       ))}
                     </select>
