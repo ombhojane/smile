@@ -15,6 +15,7 @@
     "@headlessui/react": "^1.7.18",
     "axios": "^1.6.8",
     "crisp-sdk-web": "^1.0.22",
+    "d3": "^7.9.0",
     "eslint": "8.47.0",
     "eslint-config-next": "13.4.19",
     "form-data": "^4.0.0",
@@ -34,7 +35,9 @@
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.5.0",
     "react-tooltip": "^5.26.3",
-    "stripe": "^13.11.0"
+    "stripe": "^13.11.0",
+    "venn": "^1.1.2",
+    "venn.js": "^0.2.20"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",

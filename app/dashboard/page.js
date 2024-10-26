@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Papa from 'papaparse';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
+import * as venn from 'venn.js';
+import * as d3 from 'd3';
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
@@ -22,11 +24,9 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState('');
 
   useEffect(() => {
-    fetch('/api/csv-data')
+    fetch('/dummy_data.csv')
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch CSV data');
@@ -87,6 +87,23 @@ export default function Dashboard() {
     `;
   };
 
+  const generateVennDiagram = (total, filtered) => {
+    const sets = [
+      { sets: ['Total'], size: total },
+      { sets: ['Filtered'], size: filtered },
+      { sets: ['Total', 'Filtered'], size: filtered }
+    ];
+
+    d3.select("#venn").select("svg").remove();
+
+    const chart = venn.VennDiagram();
+    const div = d3.select("#venn").datum(sets).call(chart);
+
+    div.selectAll("text")
+      .style("fill", "black")
+      .style("font-size", "14px");
+  };
+
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
@@ -102,7 +119,7 @@ export default function Dashboard() {
   };
 
   const handleGeminiRequest = async () => {
-    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+    const apiKey = "YOUR_API_KEY_HERE";
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const model = genAI.getGenerativeModel({
@@ -130,46 +147,36 @@ export default function Dashboard() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-    });
-
-    const generationConfig = {
-      temperature: 0.9,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 1024,
-    };
-
-    try {
-      const chatSession = model.startChat({
-        generationConfig,
-        history: [],
-      });
-
-      const result = await chatSession.sendMessage(`Based on the CRM data, ${searchQuery}`);
-      setSearchResult(result.response.text());
-    } catch (error) {
-      console.error('Error calling Gemini API for search:', error);
-      setSearchResult('An error occurred while searching. Please try again.');
-    }
-  };
-
   useEffect(() => {
     setRecommendations([
       "Suggest marketing strategies for our top-selling product category in North India.",
-        "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
-        "Provide insights on customer preferences based on regional languages and dialects.",
-        "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
-        "Analyze the impact of regional cultural events on customer purchasing patterns.",
+      "Identify potential upsell opportunities for customers in the 25-34 age group in Tier-2 cities.",
+      "Recommend ways to improve customer engagement in our least active region, specifically in rural areas.",
+      "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
+      "Provide insights on customer preferences based on regional languages and dialects.",
+      "Suggest personalized marketing campaigns for customers based on their socio-economic status.",
+      "Identify trends in customer feedback from different states and suggest improvements.",
+      "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
+      "Analyze the impact of regional cultural events on customer purchasing patterns.",
+      "Provide recommendations for cross-selling products based on regional preferences and tastes."
     ]);
   }, []);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      updateVisualization();
+      generateVennDiagram(data.length, data.filter(item => {
+        return (
+          (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
+          (filters.Region === '' || item.Region === filters.Region) &&
+          (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
+          (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
+          (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+          (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
+        );
+      }).length);
+    }
+  }, [filters, data]);
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
@@ -182,9 +189,7 @@ export default function Dashboard() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                {/* Remove or replace this Image component if you don't have the smile.png file */}
-                {/* <Image src="/smile.png" alt="Smile Logo" width={40} height={40} /> */}
-                <img src="/crm.png" alt="CRM Logo" style={{ height: '70px' }} />
+                <span className="ml-2 text-xl font-bold text-gray-800">SMILE CRM</span>
               </div>
             </div>
             <div className="flex items-center">
@@ -199,41 +204,7 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Add this new section for the search bar */}
-      <div className="bg-gradient-to-r from-lavender-500 to-purple-600 py-8">
-        <div className="max-w-3xl mx-auto px-4">
-          <div className="relative">
-            <input
-              type="text"
-              className="w-full py-3 px-4 pr-12 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-lavender-300"
-              placeholder="Ask anything about your CRM data..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <button
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-lavender-600 text-white p-2 rounded-full hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-lavender-300"
-              onClick={handleSearch}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Display search results */}
-        {searchResult && (
-          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-2">Search Results</h3>
-            <div className="prose max-w-none">
-              <ReactMarkdown>{searchResult}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-
         <div className="flex flex-col md:flex-row gap-6">
           <aside className="md:w-1/3 bg-white shadow-lg rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">Advanced Filters</h3>
@@ -341,6 +312,9 @@ export default function Dashboard() {
             <div className="bg-lavender-100 p-6 rounded-lg min-h-[300px] flex items-center justify-center text-gray-600 mb-4">
               {updateVisualization()}
             </div>
+            
+            {/* Venn Diagram Section */}
+            <div id="venn" className="mt-6"></div>
             
             {/* Update this section for AI Response */}
             <div className="bg-white p-6 rounded-lg border border-lavender-200">
