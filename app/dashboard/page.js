@@ -7,6 +7,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import * as venn from 'venn.js';
 import * as d3 from 'd3';
+import { FaSearch } from 'react-icons/fa';
+import { CSVLink } from "react-csv";
+import { saveAs } from 'file-saver';
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
@@ -24,6 +27,10 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDetailedView, setShowDetailedView] = useState(false);
 
   useEffect(() => {
     fetch('/dummy_data.csv')
@@ -151,6 +158,35 @@ export default function Dashboard() {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Based on the following CRM data and user query, provide a concise and relevant answer:
+
+Data summary:
+${JSON.stringify(data.slice(0, 10))}
+
+User query: ${searchQuery}
+
+Please provide a helpful and informative response.`;
+
+    try {
+      const result = await model.generateContent(prompt);
+      setSearchResult(result.response.text());
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      setSearchResult('An error occurred while searching. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   useEffect(() => {
     setRecommendations([
       "Suggest marketing strategies for our top-selling product category in North India.",
@@ -178,6 +214,26 @@ export default function Dashboard() {
     }
   }, [filters, data]);
 
+  const getFilteredData = () => {
+    return data.filter(item => {
+      return (
+        (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
+        (filters.Region === '' || item.Region === filters.Region) &&
+        (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
+        (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
+        (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+        (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
+      );
+    });
+  };
+
+  const handleDownloadJSON = () => {
+    const filteredData = getFilteredData();
+    const jsonString = JSON.stringify(filteredData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    saveAs(blob, 'filtered_crm_data.json');
+  };
+
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
   }
@@ -204,7 +260,53 @@ export default function Dashboard() {
         </div>
       </nav>
 
+      {/* Enhanced search bar section */}
+      <div className="bg-gradient-to-r from-lavender-200 to-lavender-300 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-4">
+            <h2 className="text-3xl font-bold text-gray-800">Explore Your CRM Data</h2>
+            <p className="mt-2 text-lg text-gray-600">Ask anything about your customers and get AI-powered insights</p>
+          </div>
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-2xl">
+              <div className="relative rounded-lg shadow-lg">
+                <input
+                  type="text"
+                  className="form-input block w-full pl-12 pr-12 py-4 text-lg rounded-lg transition ease-in-out duration-150 focus:ring-2 focus:ring-lavender-500 focus:border-lavender-500"
+                  placeholder="E.g., 'What's the most popular product category?'"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FaSearch className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    onClick={handleSearch}
+                    disabled={isSearching}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-black bg-lavender-600 hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender-500 transition ease-in-out duration-150"
+                  >
+                    {isSearching ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Search result section */}
+        {searchResult && (
+          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+            <h3 className="text-xl font-semibold mb-2">Search Result</h3>
+            <div className="prose max-w-none">
+              <ReactMarkdown>{searchResult}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row gap-6">
           <aside className="md:w-1/3 bg-white shadow-lg rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">Advanced Filters</h3>
@@ -313,11 +415,61 @@ export default function Dashboard() {
               {updateVisualization()}
             </div>
             
+            {/* Data Actions */}
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={() => setShowDetailedView(!showDetailedView)}
+                className="bg-lavender-600 text-white bg-black px-4 py-2 rounded hover:bg-lavender-700 transition duration-300"
+              >
+                {showDetailedView ? 'Hide Data Viewer' : 'Show Data Viewer'}
+              </button>
+              <button
+                onClick={handleDownloadJSON}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300"
+              >
+                Download Filtered Data (JSON)
+              </button>
+            </div>
+
+            {/* Data Viewer */}
+            {showDetailedView && (
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {Object.keys(data[0] || {}).map((header) => (
+                        <th
+                          key={header}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {getFilteredData().slice(0, 100).map((row, index) => (
+                      <tr key={index}>
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {value}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {getFilteredData().length > 100 && (
+                  <p className="mt-2 text-sm text-gray-500">Showing first 100 rows. Download the full dataset for complete data.</p>
+                )}
+              </div>
+            )}
+            
             {/* Venn Diagram Section */}
             <div id="venn" className="mt-6"></div>
             
-            {/* Update this section for AI Response */}
-            <div className="bg-white p-6 rounded-lg border border-lavender-200">
+            {/* AI Response Section */}
+            <div className="bg-white p-6 rounded-lg border border-lavender-200 mt-6">
               <h3 className="text-xl font-semibold mb-2">AI Recommendation</h3>
               {aiResponse ? (
                 <div className="prose max-w-none">
