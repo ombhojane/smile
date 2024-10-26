@@ -1,3 +1,4 @@
+'use client'
 import Image from "next/image";
 import TestimonialsAvatars from "./TestimonialsAvatars";
 import config from "@/config";
@@ -14,17 +15,32 @@ const Hero = () => {
         <p className="text-lg opacity-80 leading-relaxed">
         Build stronger relationships with a CRM designed for personalized engagement and growth.
         </p>
-        <Link href="/dashboard">
-          <button className="btn btn-primary btn-wide">
-            Get {config.appName}
-          </button>
+        <div className="flex flex-row gap-4">
+        <Link href="">
+          <label htmlFor="file-upload" className="btn btn-primary btn-wide" style={{ backgroundColor: '#AA80FF' , color: '#fff' }}>
+            Upload Your Data
+          </label>
+          <input
+            type="file"
+            id="file-upload"
+            style={{ display: 'none' }} // Hides the default file input
+            onChange={(e) => handleFileUpload(e)}
+          />
         </Link>
+        <Link href="/dashboard">
+        <button
+          className="btn btn-primary btn-wide"
+          style={{ backgroundColor: '#AA80FF' , color: '#fff' }}
+        >
+          Connect to CRM
+        </button>
+        </Link>
+        </div>
 
-        <TestimonialsAvatars priority={true} />
       </div>
       <div className="lg:w-full">
         <Image
-          src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3540&q=80"
+          src="/smile.png"
           alt="Product Demo"
           className="w-full"
           priority={true}

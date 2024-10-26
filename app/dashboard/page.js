@@ -137,6 +137,7 @@ export default function Dashboard() {
       model: "gemini-1.5-flash",
     });
 
+    
     const generationConfig = {
       temperature: 1,
       topP: 0.95,
@@ -155,35 +156,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       setAiResponse('An error occurred while generating the recommendation.');
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `Based on the following CRM data and user query, provide a concise and relevant answer:
-
-Data summary:
-${JSON.stringify(data.slice(0, 10))}
-
-User query: ${searchQuery}
-
-Please provide a helpful and informative response.`;
-
-    try {
-      const result = await model.generateContent(prompt);
-      setSearchResult(result.response.text());
-    } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      setSearchResult('An error occurred while searching. Please try again.');
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -296,17 +268,29 @@ Please provide a helpful and informative response.`;
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Search result section */}
-        {searchResult && (
-          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-            <h3 className="text-xl font-semibold mb-2">Search Result</h3>
-            <div className="prose max-w-none">
-              <ReactMarkdown>{searchResult}</ReactMarkdown>
-            </div>
+      <div className="bg-gradient-to-r from-lavender-500 to-purple-600 py-8">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="relative">
+            <input
+              type="text"
+              className="w-full py-3 px-4 pr-12 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-lavender-300"
+              placeholder="Ask anything about your CRM data..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <button
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-lavender-600 text-white p-2 rounded-full hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-lavender-300"
+              onClick={handleSearch}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
           </div>
-        )}
-
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row gap-6">
           <aside className="md:w-1/3 bg-white shadow-lg rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">Advanced Filters</h3>
