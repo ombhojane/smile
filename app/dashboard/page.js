@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Papa from 'papaparse';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
-import * as venn from 'venn.js';
-import * as d3 from 'd3';
+// import * as venn from 'venn.js';
+// import * as d3 from 'd3';
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
@@ -91,22 +91,22 @@ export default function Dashboard() {
     `;
   };
 
-  const generateVennDiagram = (total, filtered) => {
-    const sets = [
-      { sets: ['Total'], size: total },
-      { sets: ['Filtered'], size: filtered },
-      { sets: ['Total', 'Filtered'], size: filtered }
-    ];
+  // const generateVennDiagram = (total, filtered) => {
+  //   const sets = [
+  //     { sets: ['Total'], size: total },
+  //     { sets: ['Filtered'], size: filtered },
+  //     { sets: ['Total', 'Filtered'], size: filtered }
+  //   ];
 
-    d3.select("#venn").select("svg").remove();
+  //   d3.select("#venn").select("svg").remove();
 
-    const chart = venn.VennDiagram();
-    const div = d3.select("#venn").datum(sets).call(chart);
+  //   const chart = venn.VennDiagram();
+  //   const div = d3.select("#venn").datum(sets).call(chart);
 
-    div.selectAll("text")
-      .style("fill", "black")
-      .style("font-size", "14px");
-  };
+  //   div.selectAll("text")
+  //     .style("fill", "black")
+  //     .style("font-size", "14px");
+  // };
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -166,21 +166,21 @@ export default function Dashboard() {
     ]);
   }, []);
 
-  useEffect(() => {
-    if (data.length > 0) {
-      updateVisualization();
-      generateVennDiagram(data.length, data.filter(item => {
-        return (
-          (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
-          (filters.Region === '' || item.Region === filters.Region) &&
-          (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
-          (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
-          (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
-          (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
-        );
-      }).length);
-    }
-  }, [filters, data]);
+  // useEffect(() => {
+  //   if (data.length > 0) {
+  //     updateVisualization();
+  //     generateVennDiagram(data.length, data.filter(item => {
+  //       return (
+  //         (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
+  //         (filters.Region === '' || item.Region === filters.Region) &&
+  //         (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
+  //         (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
+  //         (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+  //         (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
+  //       );
+  //     }).length);
+  //   }
+  // }, [filters, data]);
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
@@ -193,7 +193,7 @@ export default function Dashboard() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <span className="ml-2 text-xl font-bold text-gray-800">SMILE CRM</span>
+              <img src="/crm.png" alt="CRM Logo" style={{ height: '70px' }} />
               </div>
             </div>
             <div className="flex items-center">

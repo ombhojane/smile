@@ -9,18 +9,7 @@ import logo from "@/app/icon.png";
 import config from "@/config";
 
 const links = [
-  {
-    href: "/#pricing",
-    label: "Pricing",
-  },
-  {
-    href: "/#testimonials",
-    label: "Reviews",
-  },
-  {
-    href: "/#faq",
-    label: "FAQ",
-  },
+
 ];
 
 const cta = <ButtonSignin extraStyle="btn-primary" />;
@@ -43,24 +32,7 @@ const Header = () => {
         aria-label="Global"
       >
         {/* Your logo/name on large screens */}
-        <div className="flex lg:flex-1">
-          <Link
-            className="flex items-center gap-2 shrink-0 "
-            href="/"
-            title={`${config.appName} hompage`}
-          >
-            <Image
-              src={logo}
-              alt={`${config.appName} logo`}
-              className="w-8"
-              placeholder="blur"
-              priority={true}
-              width={32}
-              height={32}
-            />
-            <span className="font-extrabold text-lg">{config.appName}</span>
-          </Link>
-        </div>
+        <img src="/crm.png" alt="CRM Logo" style={{ height: '80px' }} />
         {/* Burger button to open menu on mobile */}
         <div className="flex lg:hidden">
           <button
