@@ -206,6 +206,31 @@ export default function Dashboard() {
     saveAs(blob, 'filtered_crm_data.json');
   };
 
+  const handleSearch = async () => {
+    setIsSearching(true);
+    try {
+      const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const generationConfig = {
+        temperature: 1,
+        topP: 0.95,
+        topK: 64,
+        maxOutputTokens: 8192,
+      };
+
+      const chatSession = model.startChat({ generationConfig, history: [] });
+      const result = await chatSession.sendMessage(searchQuery);
+      setSearchResult(result.response.text());
+    } catch (error) {
+      console.error('Error during search:', error);
+      setSearchResult('An error occurred while processing your search.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
   }
@@ -466,6 +491,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add this section to display search results */}
+      {searchResult && (
+        <div className="mt-6 bg-white p-6 rounded-lg shadow-lg">
+          <h3 className="text-xl font-semibold mb-2">Search Results</h3>
+          <ReactMarkdown>{searchResult}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }
