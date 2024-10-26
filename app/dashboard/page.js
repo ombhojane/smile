@@ -22,6 +22,8 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState('');
 
   useEffect(() => {
     fetch('/api/csv-data')
@@ -128,6 +130,37 @@ export default function Dashboard() {
     }
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+
+    const generationConfig = {
+      temperature: 0.9,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 1024,
+    };
+
+    try {
+      const chatSession = model.startChat({
+        generationConfig,
+        history: [],
+      });
+
+      const result = await chatSession.sendMessage(`Based on the CRM data, ${searchQuery}`);
+      setSearchResult(result.response.text());
+    } catch (error) {
+      console.error('Error calling Gemini API for search:', error);
+      setSearchResult('An error occurred while searching. Please try again.');
+    }
+  };
+
   useEffect(() => {
     setRecommendations([
       "Suggest marketing strategies for our top-selling product category.",
@@ -164,7 +197,41 @@ export default function Dashboard() {
         </div>
       </nav>
 
+      {/* Add this new section for the search bar */}
+      <div className="bg-gradient-to-r from-lavender-500 to-purple-600 py-8">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="relative">
+            <input
+              type="text"
+              className="w-full py-3 px-4 pr-12 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-lavender-300"
+              placeholder="Ask anything about your CRM data..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <button
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-lavender-600 text-white p-2 rounded-full hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-lavender-300"
+              onClick={handleSearch}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Display search results */}
+        {searchResult && (
+          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+            <h3 className="text-xl font-semibold mb-2">Search Results</h3>
+            <div className="prose max-w-none">
+              <ReactMarkdown>{searchResult}</ReactMarkdown>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row gap-6">
           <aside className="md:w-1/3 bg-white shadow-lg rounded-lg p-6">
             <h3 className="text-xl font-semibold mb-4">Advanced Filters</h3>
