@@ -163,9 +163,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     setRecommendations([
-      "Suggest marketing strategies for our top-selling product category.",
-      "Identify potential upsell opportunities for customers in the 25-34 age group.",
-      "Recommend ways to improve customer engagement in our least active region.",
+      "Suggest marketing strategies for our top-selling product category in North India.",
+        "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
+        "Provide insights on customer preferences based on regional languages and dialects.",
+        "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
+        "Analyze the impact of regional cultural events on customer purchasing patterns.",
     ]);
   }, []);
 
@@ -325,7 +327,7 @@ export default function Dashboard() {
                 ))}
               </select>
               <button
-                className="mt-2 bg-lavender-600 text-white px-4 py-2 rounded hover:bg-lavender-700"
+                className="mt-2 bg-lavender-600 text-white bg-black px-4 py-2 rounded hover:bg-lavender-700"
                 onClick={handleGeminiRequest}
                 disabled={!selectedPrompt}
               >
