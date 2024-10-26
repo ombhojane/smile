@@ -182,7 +182,7 @@ export default function Dashboard() {
               <div className="flex-shrink-0 flex items-center">
                 {/* Remove or replace this Image component if you don't have the smile.png file */}
                 {/* <Image src="/smile.png" alt="Smile Logo" width={40} height={40} /> */}
-                <span className="ml-2 text-xl font-bold text-gray-800">SMILE CRM</span>
+                <img src="/crm.png" alt="CRM Logo" style={{ height: '70px' }} />
               </div>
             </div>
             <div className="flex items-center">
