@@ -55,11 +55,15 @@ export default function Dashboard() {
 
   const generateFilterOptions = (data) => {
     const options = {
+    SegmentID: [...new Set(data.map(item => item.SegmentID).filter(Boolean))],
       AgeGroup: [...new Set(data.map(item => item.AgeGroup).filter(Boolean))],
       Region: [...new Set(data.map(item => item.Region).filter(Boolean))],
       Gender: [...new Set(data.map(item => item.Gender).filter(Boolean))],
       PreferredLanguage: [...new Set(data.map(item => item.PreferredLanguage).filter(Boolean))],
       PurchaseCategory: [...new Set(data.map(item => item.PurchaseCategory).filter(Boolean))],
+      Demography: [...new Set(data.map(item => item.Demography).filter(Boolean))],
+      FestivalSeason: [...new Set(data.map(item => item.FestivalSeason).filter(Boolean))],
+      FestivalBuyingPattern: [...new Set(data.map(item => item.FestivalBuyingPattern).filter(Boolean))],
     };
     setFilterOptions(options);
   };
