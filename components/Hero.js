@@ -16,7 +16,7 @@ const Hero = () => {
         Build stronger relationships with a CRM designed for personalized engagement and growth.
         </p>
         <div className="flex flex-row gap-4">
-        <Link href="">
+        <Link href="/upload">
           <label htmlFor="file-upload" className="btn btn-primary btn-wide" style={{ backgroundColor: '#AA80FF' , color: '#fff' }}>
             Upload Your Data
           </label>
@@ -27,6 +27,7 @@ const Hero = () => {
             onChange={(e) => handleFileUpload(e)}
           />
         </Link>
+        
         <Link href="/dashboard">
         <button
           className="btn btn-primary btn-wide"

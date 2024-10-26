@@ -19,7 +19,7 @@ export default function Dashboard() {
     Region: '',
     Gender: [],
     PreferredLanguage: '',
-    PurchaseCategory: '',
+    ProductCategory: '',
     minAmount: 0,
     maxAmount: 1000000
   });
@@ -31,9 +31,12 @@ export default function Dashboard() {
   const [searchResult, setSearchResult] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showDetailedView, setShowDetailedView] = useState(false);
+  const [enrichDataQuery, setEnrichDataQuery] = useState('');
+  const [enrichDataResponse, setEnrichDataResponse] = useState('');
+  const [isEnriching, setIsEnriching] = useState(false);
 
   useEffect(() => {
-    fetch('/dummy_data.csv')
+    fetch('/crm_synthetic_data.csv')
       .then(response => {
         if (!response.ok) {
           throw new Error('Failed to fetch CSV data');
@@ -62,15 +65,11 @@ export default function Dashboard() {
 
   const generateFilterOptions = (data) => {
     const options = {
-    SegmentID: [...new Set(data.map(item => item.SegmentID).filter(Boolean))],
       AgeGroup: [...new Set(data.map(item => item.AgeGroup).filter(Boolean))],
       Region: [...new Set(data.map(item => item.Region).filter(Boolean))],
       Gender: [...new Set(data.map(item => item.Gender).filter(Boolean))],
       PreferredLanguage: [...new Set(data.map(item => item.PreferredLanguage).filter(Boolean))],
-      PurchaseCategory: [...new Set(data.map(item => item.PurchaseCategory).filter(Boolean))],
-      Demography: [...new Set(data.map(item => item.Demography).filter(Boolean))],
-      FestivalSeason: [...new Set(data.map(item => item.FestivalSeason).filter(Boolean))],
-      FestivalBuyingPattern: [...new Set(data.map(item => item.FestivalBuyingPattern).filter(Boolean))],
+      ProductCategory: [...new Set(data.map(item => item.ProductCategory).filter(Boolean))],
     };
     setFilterOptions(options);
   };
@@ -82,7 +81,7 @@ export default function Dashboard() {
         (filters.Region === '' || item.Region === filters.Region) &&
         (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
         (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
-        (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+        (filters.ProductCategory === '' || item.ProductCategory === filters.ProductCategory) &&
         (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
       );
     });
@@ -93,7 +92,7 @@ export default function Dashboard() {
       Region: ${filters.Region || "All"},
       Gender: ${filters.Gender.join(', ') || "All"},
       Preferred Language: ${filters.PreferredLanguage || "All"},
-      Purchase Category: ${filters.PurchaseCategory || "All"},
+      Purchase Category: ${filters.ProductCategory || "All"},
       Purchase Amount: Min: ${filters.minAmount / 100000} Lakh / Max: ${filters.maxAmount / 100000} Lakh
     `;
   };
@@ -179,7 +178,7 @@ export default function Dashboard() {
           (filters.Region === '' || item.Region === filters.Region) &&
           (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
           (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
-          (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+          (filters.ProductCategory === '' || item.ProductCategory === filters.ProductCategory) &&
           (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
         );
       }).length);
@@ -193,7 +192,7 @@ export default function Dashboard() {
         (filters.Region === '' || item.Region === filters.Region) &&
         (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
         (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
-        (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+        (filters.ProductCategory === '' || item.ProductCategory === filters.ProductCategory) &&
         (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
       );
     });
@@ -208,7 +207,17 @@ export default function Dashboard() {
 
   const handleSearch = async () => {
     setIsSearching(true);
+    const filteredData = getFilteredData();
+    
     try {
+      console.log("Filtered data count for search:", filteredData.length);
+      console.log("Sample of filtered data for search:", filteredData.slice(0, 3));
+
+      if (filteredData.length === 0) {
+        setSearchResult("No data available based on current filters. Please adjust your filters and try again.");
+        return;
+      }
+
       const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -221,13 +230,119 @@ export default function Dashboard() {
       };
 
       const chatSession = model.startChat({ generationConfig, history: [] });
-      const result = await chatSession.sendMessage(searchQuery);
-      setSearchResult(result.response.text());
+      
+      // Prepare a summary of the data to send to the model
+      const dataSummary = filteredData.map(item => ({
+        ContactID: item.ContactID,
+        AgeGroup: item.AgeGroup,
+        Gender: item.Gender,
+        Region: item.Region,
+        ProductCategory: item.ProductCategory,
+        PurchaseAmount: item.PurchaseAmount,
+        PurchaseDate: item.PurchaseDate,
+        PreferredChannel: item.PreferredChannel,
+        PreferredLanguage: item.PreferredLanguage
+      }));
+
+      const prompt = `
+        Analyze the following CRM data for ${filteredData.length} customers: ${JSON.stringify(dataSummary)}
+
+        User Query: ${searchQuery}
+
+        Please provide a detailed, data-driven analysis focusing on:
+        1. Direct answer to the user's query based on the provided data.
+        2. Any relevant trends, patterns, or insights from the data related to the query.
+        3. If applicable, identify top customers or segments related to the query.
+        4. Provide any actionable recommendations based on the analysis.
+
+        Format the response in a clear, structured manner using markdown for readability.
+        Base your analysis ONLY on the provided data. Do not make assumptions or use external information.
+      `;
+      
+      console.log("Sending search prompt to model:", prompt);
+
+      const result = await chatSession.sendMessage(prompt);
+      const response = result.response.text();
+      console.log("Received search response from model:", response);
+      setSearchResult(response);
     } catch (error) {
       console.error('Error during search:', error);
-      setSearchResult('An error occurred while processing your search.');
+      setSearchResult('An error occurred while processing your search. Please try again.');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleEnrichData = async () => {
+    setIsEnriching(true);
+    const filteredData = getFilteredData();
+    
+    try {
+      console.log("Filtered data count:", filteredData.length);
+      console.log("Sample of filtered data:", filteredData.slice(0, 3));
+
+      if (filteredData.length === 0) {
+        setEnrichDataResponse("No data available based on current filters. Please adjust your filters and try again.");
+        return;
+      }
+
+      const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const generationConfig = {
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40,
+        maxOutputTokens: 8192,
+      };
+
+      const chatSession = model.startChat({ generationConfig, history: [] });
+      
+      // Prepare a summary of the data to send to the model
+      const dataSummary = filteredData.map(item => ({
+        ContactID: item.ContactID,
+        AgeGroup: item.AgeGroup,
+        Gender: item.Gender,
+        Region: item.Region,
+        ProductCategory: item.ProductCategory,
+        PurchaseAmount: item.PurchaseAmount,
+        PurchaseDate: item.PurchaseDate,
+        PreferredChannel: item.PreferredChannel,
+        PreferredLanguage: item.PreferredLanguage
+      }));
+
+      const prompt = `
+        Analyze the following CRM data for ${filteredData.length} customers: ${JSON.stringify(dataSummary)}
+
+        User Query: ${enrichDataQuery}
+
+        Please provide a detailed, data-driven analysis focusing on:
+        1. Identify the top 3-5 potential lead customers based on their purchase history, demographics, and preferences.
+        2. For each identified lead, provide:
+           - ContactID
+           - Key demographics (AgeGroup, Gender, Region)
+           - Purchase history highlights (ProductCategory, PurchaseAmount, PurchaseDate)
+           - Potential upsell or cross-sell opportunities based on ProductCategory
+           - Recommended personalized marketing approach considering PreferredChannel and PreferredLanguage
+        3. Overall trends or patterns in the data relevant to the user's query.
+        4. Any actionable insights or recommendations based on the data and query.
+
+        Format the response in a clear, structured manner using markdown for readability.
+        Base your analysis ONLY on the provided data. Do not make assumptions or use external information.
+      `;
+      
+      console.log("Sending prompt to model:", prompt);
+
+      const result = await chatSession.sendMessage(prompt);
+      const response = result.response.text();
+      console.log("Received response from model:", response);
+      setEnrichDataResponse(response);
+    } catch (error) {
+      console.error('Error during data enrichment:', error);
+      setEnrichDataResponse('An error occurred while processing your request. Please try again.');
+    } finally {
+      setIsEnriching(false);
     }
   };
 
@@ -290,31 +405,17 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          
+          {/* Display search results */}
+          {searchResult && (
+            <div className="mt-6 bg-white p-6 rounded-lg shadow-lg">
+              <h3 className="text-xl font-semibold mb-2">Search Results</h3>
+              <ReactMarkdown>{searchResult}</ReactMarkdown>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-lavender-500 to-purple-600 py-8">
-        <div className="max-w-3xl mx-auto px-4">
-          <div className="relative">
-            <input
-              type="text"
-              className="w-full py-3 px-4 pr-12 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-lavender-300"
-              placeholder="Ask anything about your CRM data..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <button
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-lavender-600 text-white p-2 rounded-full hover:bg-lavender-700 focus:outline-none focus:ring-2 focus:ring-lavender-300"
-              onClick={handleSearch}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row gap-6">
           <aside className="md:w-1/3 bg-white shadow-lg rounded-lg p-6">
@@ -488,17 +589,37 @@ export default function Dashboard() {
                 <p className="text-gray-700">Select a prompt and click Get Recommendation to see AI-generated advice here.</p>
               )}
             </div>
+
+            {/* Enrich Data Section */}
+            <div className="bg-white p-6 rounded-lg border border-lavender-200 mt-6">
+              <h3 className="text-xl font-semibold mb-2">Enrich Data</h3>
+              <div className="mt-2">
+                <textarea
+                  className="w-full p-2 border rounded"
+                  rows="3"
+                  placeholder="Ask about potential leads, customer trends, or specific insights from the filtered data..."
+                  value={enrichDataQuery}
+                  onChange={(e) => setEnrichDataQuery(e.target.value)}
+                ></textarea>
+              </div>
+              <button
+                className="mt-2 bg-lavender-600 text-white bg-black px-4 py-2 rounded hover:bg-lavender-700"
+                onClick={handleEnrichData}
+                disabled={isEnriching || !enrichDataQuery.trim()}
+              >
+                {isEnriching ? 'Analyzing Data...' : 'Get Insights'}
+              </button>
+              {isEnriching && <p className="mt-2">Processing your request, please wait...</p>}
+              {enrichDataResponse && (
+                <div className="mt-4 prose max-w-none">
+                  <h4 className="text-lg font-semibold">Data Insights:</h4>
+                  <ReactMarkdown>{enrichDataResponse}</ReactMarkdown>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Add this section to display search results */}
-      {searchResult && (
-        <div className="mt-6 bg-white p-6 rounded-lg shadow-lg">
-          <h3 className="text-xl font-semibold mb-2">Search Results</h3>
-          <ReactMarkdown>{searchResult}</ReactMarkdown>
-        </div>
-      )}
     </div>
   );
 }
