@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Papa from 'papaparse';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from 'react-markdown';
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
@@ -17,6 +19,9 @@ export default function Dashboard() {
     maxAmount: 1000000
   });
   const [error, setError] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [selectedPrompt, setSelectedPrompt] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
 
   useEffect(() => {
     fetch('/api/csv-data')
@@ -93,6 +98,43 @@ export default function Dashboard() {
       setFilters(prev => ({ ...prev, [name]: value }));
     }
   };
+
+  const handleGeminiRequest = async () => {
+    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+    });
+
+    const generationConfig = {
+      temperature: 1,
+      topP: 0.95,
+      topK: 64,
+      maxOutputTokens: 8192,
+    };
+
+    try {
+      const chatSession = model.startChat({
+        generationConfig,
+        history: [],
+      });
+
+      const result = await chatSession.sendMessage(selectedPrompt);
+      setAiResponse(result.response.text());
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      setAiResponse('An error occurred while generating the recommendation.');
+    }
+  };
+
+  useEffect(() => {
+    setRecommendations([
+      "Suggest marketing strategies for our top-selling product category.",
+      "Identify potential upsell opportunities for customers in the 25-34 age group.",
+      "Recommend ways to improve customer engagement in our least active region.",
+    ]);
+  }, []);
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
@@ -199,12 +241,48 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Add this new section for Recommendations */}
+            <div className="mt-8">
+              <h4 className="text-lg font-semibold mb-2">Recommendations</h4>
+              <select
+                className="w-full p-2 border rounded"
+                value={selectedPrompt}
+                onChange={(e) => setSelectedPrompt(e.target.value)}
+              >
+                <option value="">Select a prompt</option>
+                {recommendations.map((prompt, index) => (
+                  <option key={index} value={prompt}>
+                    {prompt}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="mt-2 bg-lavender-600 text-white px-4 py-2 rounded hover:bg-lavender-700"
+                onClick={handleGeminiRequest}
+                disabled={!selectedPrompt}
+              >
+                Get Recommendation
+              </button>
+            </div>
           </aside>
 
           <div className="md:w-2/3 bg-white shadow-lg rounded-lg p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualization Area</h2>
-            <div className="bg-lavender-100 p-6 rounded-lg min-h-[600px] flex items-center justify-center text-gray-600">
+            <div className="bg-lavender-100 p-6 rounded-lg min-h-[300px] flex items-center justify-center text-gray-600 mb-4">
               {updateVisualization()}
+            </div>
+            
+            {/* Update this section for AI Response */}
+            <div className="bg-white p-6 rounded-lg border border-lavender-200">
+              <h3 className="text-xl font-semibold mb-2">AI Recommendation</h3>
+              {aiResponse ? (
+                <div className="prose max-w-none">
+                  <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-gray-700">Select a prompt and click Get Recommendation to see AI-generated advice here.</p>
+              )}
             </div>
           </div>
         </div>
