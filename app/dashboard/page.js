@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Papa from 'papaparse';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
-// import * as venn from 'venn.js';
-// import * as d3 from 'd3';
+import * as venn from 'venn.js';
+import * as d3 from 'd3';
 
 export default function Dashboard() {
   const [data, setData] = useState([]);
@@ -91,22 +91,22 @@ export default function Dashboard() {
     `;
   };
 
-  // const generateVennDiagram = (total, filtered) => {
-  //   const sets = [
-  //     { sets: ['Total'], size: total },
-  //     { sets: ['Filtered'], size: filtered },
-  //     { sets: ['Total', 'Filtered'], size: filtered }
-  //   ];
+  const generateVennDiagram = (total, filtered) => {
+    const sets = [
+      { sets: ['Total'], size: total },
+      { sets: ['Filtered'], size: filtered },
+      { sets: ['Total', 'Filtered'], size: filtered }
+    ];
 
-  //   d3.select("#venn").select("svg").remove();
+    d3.select("#venn").select("svg").remove();
 
-  //   const chart = venn.VennDiagram();
-  //   const div = d3.select("#venn").datum(sets).call(chart);
+    const chart = venn.VennDiagram();
+    const div = d3.select("#venn").datum(sets).call(chart);
 
-  //   div.selectAll("text")
-  //     .style("fill", "black")
-  //     .style("font-size", "14px");
-  // };
+    div.selectAll("text")
+      .style("fill", "black")
+      .style("font-size", "14px");
+  };
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -123,7 +123,7 @@ export default function Dashboard() {
   };
 
   const handleGeminiRequest = async () => {
-    const apiKey = "YOUR_API_KEY_HERE";
+    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const model = genAI.getGenerativeModel({
@@ -155,32 +155,28 @@ export default function Dashboard() {
     setRecommendations([
       "Suggest marketing strategies for our top-selling product category in North India.",
       "Identify potential upsell opportunities for customers in the 25-34 age group in Tier-2 cities.",
-      "Recommend ways to improve customer engagement in our least active region, specifically in rural areas.",
       "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
       "Provide insights on customer preferences based on regional languages and dialects.",
-      "Suggest personalized marketing campaigns for customers based on their socio-economic status.",
-      "Identify trends in customer feedback from different states and suggest improvements.",
       "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
       "Analyze the impact of regional cultural events on customer purchasing patterns.",
-      "Provide recommendations for cross-selling products based on regional preferences and tastes."
     ]);
   }, []);
 
-  // useEffect(() => {
-  //   if (data.length > 0) {
-  //     updateVisualization();
-  //     generateVennDiagram(data.length, data.filter(item => {
-  //       return (
-  //         (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
-  //         (filters.Region === '' || item.Region === filters.Region) &&
-  //         (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
-  //         (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
-  //         (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
-  //         (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
-  //       );
-  //     }).length);
-  //   }
-  // }, [filters, data]);
+  useEffect(() => {
+    if (data.length > 0) {
+      updateVisualization();
+      generateVennDiagram(data.length, data.filter(item => {
+        return (
+          (filters.AgeGroup === '' || item.AgeGroup === filters.AgeGroup) &&
+          (filters.Region === '' || item.Region === filters.Region) &&
+          (filters.Gender.length === 0 || filters.Gender.includes(item.Gender)) &&
+          (filters.PreferredLanguage === '' || item.PreferredLanguage === filters.PreferredLanguage) &&
+          (filters.PurchaseCategory === '' || item.PurchaseCategory === filters.PurchaseCategory) &&
+          (parseFloat(item.PurchaseAmount) >= filters.minAmount && parseFloat(item.PurchaseAmount) <= filters.maxAmount)
+        );
+      }).length);
+    }
+  }, [filters, data]);
 
   if (error) {
     return <div className="text-red-500">Error: {error}</div>;
