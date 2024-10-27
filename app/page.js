@@ -19,14 +19,7 @@ export default function Home() {
       <main>
         <Hero />
         <Problem />
-        
-        {/* <FeaturesAccordion /> */}
-        {/* <Pricing /> */}
-        {/* <FAQ /> */}
-        {/* <CTA /> */}
-        {/* <ButtonLead />         */}
       </main>
-      <Footer />
     </>
   );
 }
