@@ -1,23 +1,40 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
-import csv from 'csv-parser';
+import Papa from 'papaparse';
 
-export default function handler(req, res) {
-  const results = [];
-  const filePath = path.join(process.cwd(), 'uploads', 'uploaded_data.csv');
+export default async function handler(req, res) {
+  try {
+    const filePath = path.join(process.cwd(), 'uploads', 'uploaded_data.csv');
+    
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      // If uploaded file doesn't exist, use sample data
+      const samplePath = path.join(process.cwd(), 'crm_synthetic_data.csv');
+      const sampleData = await fs.readFile(samplePath, 'utf-8');
+      const parsedData = Papa.parse(sampleData, { header: true }).data;
+      return res.status(200).json(parsedData);
+    }
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'No uploaded file found' });
-  }
+    // If we reach here, the uploaded file exists
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+    const parsedData = Papa.parse(fileContent, { 
+      header: true,
+      skipEmptyLines: true 
+    }).data;
 
-  fs.createReadStream(filePath)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', () => {
-      res.status(200).json(results);
-    })
-    .on('error', (error) => {
-      console.error('Error reading CSV:', error);
-      res.status(500).json({ message: 'Error reading CSV file' });
+    if (!parsedData || parsedData.length === 0) {
+      throw new Error('No data found in file');
+    }
+
+    console.log(`Successfully processed ${parsedData.length} records`);
+    res.status(200).json(parsedData);
+
+  } catch (error) {
+    console.error('Error processing data:', error);
+    res.status(500).json({ 
+      message: 'Error processing data',
+      error: error.message 
     });
+  }
 }

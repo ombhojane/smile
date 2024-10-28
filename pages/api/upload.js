@@ -15,23 +15,16 @@ export default async function handler(req, res) {
 
   const uploadDir = path.join(process.cwd(), 'uploads');
 
-  // Ensure the uploads directory exists
   try {
-    await fs.access(uploadDir);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      await fs.mkdir(uploadDir, { recursive: true });
-    } else {
-      throw error;
-    }
-  }
+    // Ensure upload directory exists
+    await fs.mkdir(uploadDir, { recursive: true });
 
-  const form = new IncomingForm({
-    uploadDir: uploadDir,
-    keepExtensions: true,
-  });
+    const form = new IncomingForm({
+      uploadDir,
+      keepExtensions: true,
+    });
 
-  try {
+    // Parse the form
     const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
         if (err) reject(err);
@@ -39,21 +32,36 @@ export default async function handler(req, res) {
       });
     });
 
-    const file = files.file[0];
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    if (!files.file || !files.file[0]) {
+      throw new Error('No file uploaded');
     }
 
-    const fileContent = await fs.readFile(file.filepath);
-    const newPath = path.join(uploadDir, 'uploaded_data.csv');
-    await fs.writeFile(newPath, fileContent);
+    const uploadedFile = files.file[0];
+    const fileContent = await fs.readFile(uploadedFile.filepath, 'utf-8');
+    
+    // Validate CSV format
+    if (!fileContent.includes(',')) {
+      throw new Error('Invalid CSV format');
+    }
 
-    // Remove the temporary file
-    await fs.unlink(file.filepath);
+    // Save to final destination
+    const destinationPath = path.join(uploadDir, 'uploaded_data.csv');
+    await fs.writeFile(destinationPath, fileContent, 'utf-8');
+    
+    // Clean up temp file
+    await fs.unlink(uploadedFile.filepath);
 
-    res.status(200).json({ message: 'File uploaded successfully' });
+    console.log('File successfully uploaded and processed');
+    res.status(200).json({ 
+      message: 'File uploaded successfully',
+      size: fileContent.length 
+    });
+
   } catch (error) {
-    console.error('Error uploading file:', error);
-    res.status(500).json({ message: 'Error uploading file' });
+    console.error('Upload error:', error);
+    res.status(500).json({ 
+      message: 'Error uploading file',
+      error: error.message 
+    });
   }
 }
