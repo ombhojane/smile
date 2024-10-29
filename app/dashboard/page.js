@@ -11,8 +11,6 @@ import { FaSearch } from 'react-icons/fa';
 import { CSVLink } from "react-csv";
 import { saveAs } from 'file-saver';
 
-
-
 export default function Dashboard() {
   const [data, setData] = useState([]);
   const [filterOptions, setFilterOptions] = useState({});
@@ -25,6 +23,7 @@ export default function Dashboard() {
     minAmount: 0,
     maxAmount: 1000000
   });
+  
   const [error, setError] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
