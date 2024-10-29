@@ -11,6 +11,8 @@ import { FaSearch } from 'react-icons/fa';
 import { CSVLink } from "react-csv";
 import { saveAs } from 'file-saver';
 
+
+
 export default function Dashboard() {
   const [data, setData] = useState([]);
   const [filterOptions, setFilterOptions] = useState({});
@@ -115,7 +117,7 @@ export default function Dashboard() {
   };
 
   const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { nxame, value, type, checked } = e.target;
     if (type === 'checkbox') {
       setFilters(prev => ({
         ...prev,
@@ -165,7 +167,6 @@ export default function Dashboard() {
       "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
       "Provide insights on customer preferences based on regional languages and dialects.",
       "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
-      "Analyze the impact of regional cultural events on customer purchasing patterns.",
     ]);
   }, []);
 

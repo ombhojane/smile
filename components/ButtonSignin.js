@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import config from "@/config";
@@ -10,6 +10,7 @@ import config from "@/config";
 // It automatically redirects user to callbackUrl (config.auth.callbackUrl) after login, which is normally a private page for users to manage their accounts.
 // If the user is already logged in, it will show their profile picture & redirect them to callbackUrl immediately.
 const ButtonSignin = ({ text = "Get started", extraStyle }) => {
+  // <SessionProvider session={session}></SessionProvider>;
   const router = useRouter();
   const { data: session, status } = useSession();
 
