@@ -24,6 +24,7 @@ export default function Dashboard() {
     minAmount: 0,
     maxAmount: 1000000
   });
+  
   const [error, setError] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
@@ -143,7 +144,7 @@ export default function Dashboard() {
   };
 
   const handleFilterChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { nxame, value, type, checked } = e.target;
     if (type === 'checkbox') {
       setFilters(prev => ({
         ...prev,
@@ -202,7 +203,6 @@ Format your response in clear, concise bullet points.
       "Analyze the purchasing behavior of customers during major Indian festivals like Diwali and Holi.",
       "Provide insights on customer preferences based on regional languages and dialects.",
       "Recommend strategies to increase customer retention in metropolitan cities like Mumbai and Delhi.",
-      "Analyze the impact of regional cultural events on customer purchasing patterns.",
     ]);
   }, []);
 
