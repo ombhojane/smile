@@ -17,7 +17,6 @@ export default function Home() {
         <Hero />
         <Problem />
       </main>
-      <ButtonLead />
       </SessionProvider>
     </>
   );
