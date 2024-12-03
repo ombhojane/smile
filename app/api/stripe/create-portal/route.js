@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/next-auth";
 import connectMongo from "@/libs/mongoose";
-import { createPortal } from "@/libs/stripe";
+import { createCustomerPortal } from "@/libs/stripe";
 import User from "@/models/User";
 
 export async function POST(req) {
@@ -33,7 +33,7 @@ export async function POST(req) {
         );
       }
 
-      const stripePortalUrl = await createPortal({
+      const stripePortalUrl = await createCustomerPortal({
         customerId: user.customerId,
         returnUrl: body.returnUrl,
       });
