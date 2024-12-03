@@ -144,19 +144,23 @@ export default function Dashboard() {
   };
 
   const handleFilterChange = (e) => {
-    const { nxame, value, type, checked } = e.target;
+    const { name, value, type, checked } = e.target;
+    
+    let newFilters = { ...filters };
+    
     if (type === 'checkbox') {
-      setFilters(prev => ({
-        ...prev,
-        Gender: checked
-          ? [...prev.Gender, value]
-          : prev.Gender.filter(g => g !== value)
-      }));
+      newFilters.Gender = checked
+        ? [...filters.Gender, value]
+        : filters.Gender.filter(g => g !== value);
+    } else if (name === 'minAmount' || name === 'maxAmount') {
+      newFilters[name] = value === '' ? 0 : parseFloat(value);
     } else {
-      setFilters(prev => ({ ...prev, [name]: value }));
+      newFilters[name] = value;
     }
+    
+    setFilters(newFilters);
   };
-
+  
   const handleGeminiRequest = async () => {
     try {
       const chatSession = model.startChat({
