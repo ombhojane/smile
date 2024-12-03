@@ -5,55 +5,43 @@ import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import config from "@/config";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { useState } from "react";
 
 // A simple button to sign in with our providers (Google & Magic Links).
 // It automatically redirects user to callbackUrl (config.auth.callbackUrl) after login, which is normally a private page for users to manage their accounts.
-// If the user is already logged in, it will show their profile picture & redirect them to callbackUrl immediately.
-const ButtonSignin = ({ text = "Get started", extraStyle }) => {
-  // <SessionProvider session={session}></SessionProvider>;
+const ButtonSignin = ({ text = "Sign in", className = "", callbackUrl = "" }) => {
+  const { data: session } = useSession();
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleClick = () => {
-    if (status === "authenticated") {
-      router.push(config.auth.callbackUrl);
-    } else {
-      signIn(undefined, { callbackUrl: config.auth.callbackUrl });
+  // If user is logged in, redirect to callbackUrl or dashboard
+  if (session) {
+    router.push(callbackUrl || config.auth.callbackUrl);
+    return null;
+  }
+
+  const handleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      await signIn(undefined, { callbackUrl: callbackUrl || config.auth.callbackUrl });
+    } catch (error) {
+      console.error("Error signing in:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (status === "authenticated") {
-    return (
-      <Link
-        href={config.auth.callbackUrl}
-        className={`btn ${extraStyle ? extraStyle : ""}`}
-      >
-        {session.user?.image ? (
-          <img
-            src={session.user?.image}
-            alt={session.user?.name || "Account"}
-            className="w-6 h-6 rounded-full shrink-0"
-            referrerPolicy="no-referrer"
-            width={24}
-            height={24}
-          />
-        ) : (
-          <span className="w-6 h-6 bg-base-300 flex justify-center items-center rounded-full shrink-0">
-            {session.user?.name?.charAt(0) || session.user?.email?.charAt(0)}
-          </span>
-        )}
-        {session.user?.name || session.user?.email || "Account"}
-      </Link>
-    );
-  }
-
   return (
     <button
-      className={`btn ${extraStyle ? extraStyle : ""}`}
-      onClick={handleClick}
+      className={`btn btn-primary ${className}`}
+      onClick={handleSignIn}
+      disabled={isLoading}
     >
-      {text}
+      {isLoading ? (
+        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      ) : (
+        text
+      )}
     </button>
   );
 };
