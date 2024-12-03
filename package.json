@@ -44,6 +44,7 @@
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.5.0",
     "react-tooltip": "^5.26.3",
+    "remark-gfm": "^4.0.0",
     "stripe": "^13.11.0",
     "venn": "^1.1.2",
     "venn.js": "^0.2.20"

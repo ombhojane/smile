@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Papa from 'papaparse';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';  // Add this import for table support
 import * as venn from 'venn.js';
 import * as d3 from 'd3';
 import { FaSearch } from 'react-icons/fa';
@@ -35,6 +36,17 @@ export default function Dashboard() {
   const [enrichDataResponse, setEnrichDataResponse] = useState('');
   const [isEnriching, setIsEnriching] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Initialize Gemini once at component level
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const generationConfig = {
+    temperature: 1,
+    topP: 0.95,
+    topK: 64,
+    maxOutputTokens: 8192,
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -145,32 +157,41 @@ export default function Dashboard() {
   };
 
   const handleGeminiRequest = async () => {
-    const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-    });
-
-    
-    const generationConfig = {
-      temperature: 1,
-      topP: 0.95,
-      topK: 64,
-      maxOutputTokens: 8192,
-    };
-
     try {
       const chatSession = model.startChat({
-        generationConfig,
+        generationConfig: {
+          ...generationConfig,
+          temperature: 0.7, // Lower temperature for more focused responses
+          topP: 0.8,
+          maxOutputTokens: 2048, // Limit output length
+        },
         history: [],
       });
 
-      const result = await chatSession.sendMessage(selectedPrompt);
-      setAiResponse(result.response.text());
+      // Structure the prompt to be more specific and focused
+      const structuredPrompt = `
+Please analyze the following business question and provide specific, actionable insights:
+
+Question: ${selectedPrompt}
+
+Please provide:
+1. A brief analysis (2-3 sentences)
+2. 2-3 specific, actionable recommendations
+3. Key metrics to track
+
+Format your response in clear, concise bullet points.
+`;
+
+      const result = await chatSession.sendMessage(structuredPrompt);
+      const response = await result.response.text();
+      setAiResponse(response);
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      setAiResponse('An error occurred while generating the recommendation.');
+      if (error.message.includes('RECITATION')) {
+        setAiResponse('I apologize, but I need to rephrase the question to provide a better response. Please try asking in a different way or provide more specific details about what you\'d like to know.');
+      } else {
+        setAiResponse('An error occurred while generating the recommendation. Please try again with a more specific question.');
+      }
     }
   };
 
@@ -225,17 +246,6 @@ export default function Dashboard() {
         setSearchResult("No data available based on current filters. Please adjust your filters and try again.");
         return;
       }
-
-      const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-      const generationConfig = {
-        temperature: 1,
-        topP: 0.95,
-        topK: 64,
-        maxOutputTokens: 8192,
-      };
 
       const chatSession = model.startChat({ generationConfig, history: [] });
       
@@ -293,17 +303,6 @@ export default function Dashboard() {
         setEnrichDataResponse("No data available based on current filters. Please adjust your filters and try again.");
         return;
       }
-
-      const apiKey = "AIzaSyAIsM6YfAJJmH73AJvkZgkxk8TLuiYY9wg";
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-      const generationConfig = {
-        temperature: 0.7,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: 8192,
-      };
 
       const chatSession = model.startChat({ generationConfig, history: [] });
       
@@ -405,7 +404,7 @@ export default function Dashboard() {
                   <div className="relative rounded-lg shadow-lg">
                     <input
                       type="text"
-                      className="form-input block w-full pl-12 pr-12 py-4 text-lg rounded-lg transition ease-in-out duration-150 focus:ring-2 focus:ring-lavender-500 focus:border-lavender-500"
+                      className="form-input block w-full pl-12 pr-12 py-4 text-lg rounded-lg transition ease-in-out duration-150 focus:ring-2 focus:ring-lavender-500 focus:border-lavender-500 sm:text-sm rounded-md"
                       placeholder="E.g., 'What's the most popular product category?'"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -426,12 +425,36 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              
               {/* Display search results */}
               {searchResult && (
                 <div className="mt-6 bg-white p-6 rounded-lg shadow-lg">
                   <h3 className="text-xl font-semibold mb-2">Search Results</h3>
-                  <ReactMarkdown>{searchResult}</ReactMarkdown>
+                  <div className="prose max-w-none">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        table: ({ node, ...props }) => (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 my-4" {...props} />
+                          </div>
+                        ),
+                        thead: ({ node, ...props }) => (
+                          <thead className="bg-gray-50" {...props} />
+                        ),
+                        th: ({ node, ...props }) => (
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />
+                        ),
+                        td: ({ node, ...props }) => (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" {...props} />
+                        ),
+                        tr: ({ node, isHeader, ...props }) => (
+                          <tr className={`${isHeader ? '' : 'bg-white hover:bg-gray-50'}`} {...props} />
+                        )
+                      }}
+                    >
+                      {searchResult}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>
@@ -604,7 +627,30 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold mb-2">AI Recommendation</h3>
                   {aiResponse ? (
                     <div className="prose max-w-none">
-                      <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ node, ...props }) => (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200 my-4" {...props} />
+                            </div>
+                          ),
+                          thead: ({ node, ...props }) => (
+                            <thead className="bg-gray-50" {...props} />
+                          ),
+                          th: ({ node, ...props }) => (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />
+                          ),
+                          td: ({ node, ...props }) => (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" {...props} />
+                          ),
+                          tr: ({ node, isHeader, ...props }) => (
+                            <tr className={`${isHeader ? '' : 'bg-white hover:bg-gray-50'}`} {...props} />
+                          )
+                        }}
+                      >
+                        {aiResponse}
+                      </ReactMarkdown>
                     </div>
                   ) : (
                     <p className="text-gray-700">Select a prompt and click Get Recommendation to see AI-generated advice here.</p>
@@ -634,7 +680,30 @@ export default function Dashboard() {
                   {enrichDataResponse && (
                     <div className="mt-4 prose max-w-none">
                       <h4 className="text-lg font-semibold">Data Insights:</h4>
-                      <ReactMarkdown>{enrichDataResponse}</ReactMarkdown>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ node, ...props }) => (
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200 my-4" {...props} />
+                            </div>
+                          ),
+                          thead: ({ node, ...props }) => (
+                            <thead className="bg-gray-50" {...props} />
+                          ),
+                          th: ({ node, ...props }) => (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />
+                          ),
+                          td: ({ node, ...props }) => (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" {...props} />
+                          ),
+                          tr: ({ node, isHeader, ...props }) => (
+                            <tr className={`${isHeader ? '' : 'bg-white hover:bg-gray-50'}`} {...props} />
+                          )
+                        }}
+                      >
+                        {enrichDataResponse}
+                      </ReactMarkdown>
                     </div>
                   )}
                 </div>
