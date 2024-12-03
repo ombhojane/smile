@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/libs/next-auth";
-import connectMongo from "@/libs/mongoose";
-import { createCustomerPortal } from "@/libs/stripe";
-import User from "@/models/User";
+import { authOptions } from "../../../libs/next-auth";
+import connectMongo from "../../../libs/mongoose";
+import { createPortal } from "../../../libs/stripe";
+import User from "../../../models/User";
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
@@ -33,7 +33,7 @@ export async function POST(req) {
         );
       }
 
-      const stripePortalUrl = await createCustomerPortal({
+      const stripePortalUrl = await createPortal({
         customerId: user.customerId,
         returnUrl: body.returnUrl,
       });
